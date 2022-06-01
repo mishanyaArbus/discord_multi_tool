@@ -167,7 +167,7 @@ if __name__ == "__main__":
 
     elif task == 3:
         c_id = input("Chat id --> ")
-        messages_to_send = [a.replace("\n", "") for a in open(input("File with messages to send --> "), "r", encoding="utf8").readlines()]
+        messages_to_send = [a.replace("\n", "") for a in open(input("File with messages to send --> "), "r", encoding="uft8").readlines()]
         send_type = input("1 - send messages once\n2 - send messages endlessly\n --> ")
 
         if send_type == 2:
