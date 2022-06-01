@@ -87,7 +87,12 @@ def parse_last_msgs(ses: r.Session, chat_id, num):
 def send_messages(ses: r.Session, chat_id, message):
     _data = {'content': message, 'tts': False}
 
-    resp = ses.post(f'https://discord.com/api/v9/channels/{chat_id}/messages', json=_data, timeout=2)
+    try:
+        resp = ses.post(f'https://discord.com/api/v9/channels/{chat_id}/messages', json=_data, timeout=2)
+    except r.exceptions.ReadTimeout:
+        sleep(10)
+        send_messages(ses, chat_id, message)
+        return 
 
     if resp.status_code == 200:
         logger.success(f"Send message '{message}' with {ses.headers['authorization']}")
@@ -167,7 +172,7 @@ if __name__ == "__main__":
 
     elif task == 3:
         c_id = input("Chat id --> ")
-        messages_to_send = [a.replace("\n", "") for a in open(input("File with messages to send --> "), "r", encoding="uft8").readlines()]
+        messages_to_send = [a.replace("\n", "") for a in open(input("File with messages to send --> "), "r", encoding="utf8").readlines()]
         send_type = input("1 - send messages once\n2 - send messages endlessly\n --> ")
 
         if send_type == 2:
