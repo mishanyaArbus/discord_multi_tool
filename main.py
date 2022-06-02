@@ -11,7 +11,7 @@ from pyuseragents import random as u_a
 logger.remove()
 logger.add(stderr, format="<white>{time:HH:mm:ss}</white> | <level>{level: <8}</level> | <cyan>{line}</cyan> - <white>{message}</white>")
 
-print(f"-=BY @Agubus=-")
+print(f"--== BY @Agubus ==--")
 
 q = queue.Queue()
 
@@ -108,18 +108,30 @@ def send_messages(ses: r.Session, chat_id, message):
     else:
         logger.error(f"{resp.status_code} {resp.text} Failed to send message '{message}' with {ses.headers['authorization']}")
 
-def change_name(ses: r.Session, password, new_name):
+def change_name(ses: r.Session, password, new_name, prev_name = None):
+
+    if prev_name is None:
+        resp = ses.get('https://discord.com/api/v9/users/883889971629539359/profile?with_mutual_guilds=false')
+
+        if resp.status_code == 200:
+            prev_name = resp.json()['user']['username']
+        elif resp.status_code == 429:
+            sleep(int(resp.json()['retry_after']))
+            change_name(ses, password, new_name)
+        else:
+            raise Exception(f"{resp.status_code} {resp.text}; Failed to change name of {ses.headers['authorization']} to {new_name}")
+
     _data = {"password":password, "username":new_name}
 
     resp = ses.patch("https://discord.com/api/v9/users/@me", json=_data)
 
     if resp.status_code == 200:
-        logger.success(f"Changed name of {ses.headers['authorization']} to {new_name}")
+        logger.success(f"Changed name of {ses.headers['authorization']} from {prev_name} to {new_name}")
     elif resp.status_code == 429:
         sleep(int(resp.json()['retry_after']))
-        change_name(ses, password, new_name)
+        change_name(ses, password, new_name, prev_name)
     else:
-        logger.error(f"{resp.status_code} {resp.text}; Failed to change name of {ses.headers['authorization']} to {new_name}")
+        raise Exception(f"{resp.status_code} {resp.text}; Failed to change name of {ses.headers['authorization']} from {prev_name} to {new_name}")
 
 def performer(task_num, auth_tok, proxy, **transit_datas):
     ses = r.Session()
@@ -141,7 +153,10 @@ def performer(task_num, auth_tok, proxy, **transit_datas):
 def threader():
     while True:
         data = q.get()
-        performer(**data)
+        try:
+            performer(**data)
+        except Exception as e:
+            logger.error(e)
         q.task_done()
 
 if __name__ == "__main__":
@@ -236,7 +251,7 @@ if __name__ == "__main__":
             names = [f'{names.get_first_name()}{random.randint(10, 99)}' for _ in tokens]
 
         for token in tokens:
-            task_data={
+            task_data = {
                 "password":passwords.pop(0),
                 "new_name":names.pop(0)
             }
@@ -244,6 +259,7 @@ if __name__ == "__main__":
 
         q.join()
 
+    #elif task == 5:
 
 
     input("done")
