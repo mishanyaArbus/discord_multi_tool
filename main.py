@@ -108,35 +108,34 @@ def send_messages(ses: r.Session, chat_id, message):
     else:
         logger.error(f"{resp.status_code} {resp.text} Failed to send message '{message}' with {ses.headers['authorization']}")
 
-def change_name(ses: r.Session, password, new_name, prev_name = None):
-
-    if prev_name is None:
-        resp = ses.get('https://discord.com/api/v9/users/883889971629539359/profile?with_mutual_guilds=false')
-
-        if resp.status_code == 200:
-            prev_name = resp.json()['user']['username']
-        elif resp.status_code == 429:
-            sleep(int(resp.json()['retry_after']))
-            change_name(ses, password, new_name)
-        else:
-            raise Exception(f"{resp.status_code} {resp.text}; Failed to change name of {ses.headers['authorization']} to {new_name}")
+def change_name(ses: r.Session, password, new_name):
 
     _data = {"password":password, "username":new_name}
 
     resp = ses.patch("https://discord.com/api/v9/users/@me", json=_data)
 
     if resp.status_code == 200:
-        logger.success(f"Changed name of {ses.headers['authorization']} from {prev_name} to {new_name}")
+        logger.success(f"Changed name of {ses.headers['authorization']} to {new_name}")
     elif resp.status_code == 429:
         sleep(int(resp.json()['retry_after']))
-        change_name(ses, password, new_name, prev_name)
+        change_name(ses, password, new_name)
     else:
-        raise Exception(f"{resp.status_code} {resp.text}; Failed to change name of {ses.headers['authorization']} from {prev_name} to {new_name}")
+        raise Exception(f"{resp.status_code} {resp.text}; Failed to change name of {ses.headers['authorization']} to {new_name}")
 
 def performer(task_num, auth_tok, proxy, **transit_datas):
     ses = r.Session()
     ses.headers["authorization"] = auth_tok
     ses.headers["user-agent"] = u_a()
+
+    resp = ses.get('https://discord.com/api/v9/users/@me?with_analytics_token=true')
+
+    if resp.status_code == 200:
+        pass
+    elif resp.status_code == 429:
+        sleep(int(resp.json()['retry_after']))
+        performer(task_num, auth_tok, proxy, **transit_datas)
+    else:
+        raise Exception(f"{resp.status_code} {resp.text}; Failed to get acc data of {auth_tok}")
 
     if proxy is not None:
         ses.proxies = {
