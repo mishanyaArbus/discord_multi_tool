@@ -47,12 +47,21 @@ print(
     sep="\n")
 task = int(input("Choose task --> "))
 
-def add_reations(ses: r.Session, chat_id, message_ids, reactions):
+def add_reations(ses: r.Session, chat_id, message_ids, reactions, drop_off = False):
+
+    randomizer = 1
+
     for message_id in message_ids:
         for reaction in reactions:
+
+            if drop_off:
+                if random.randint(0, randomizer) not in (1,2):
+                    continue
+
             for b in range(4):
                 resp = ses.put(f"https://discord.com/api/v9/channels/{chat_id}/messages/{message_id}/reactions/{reaction}/%40me?location=Message")
                 if resp.status_code == 204:
+                    randomizer += 1
                     break
                 else:
                     sleep(2)
@@ -184,10 +193,13 @@ if __name__ == "__main__":
 
         reactions_l = [a.replace("\n", "") for a in open(input("File with reactions --> "), "r", encoding = "utf8").readlines()]
 
+        drop_off = list([True, False])[{"Y":0, "y":0, "N":1, "n":1}[input("Use natural reaction pattern y/n -->")]]
+
         task_data = {
             "chat_id":c_id,
             "message_ids":message_ids_l,
             "reactions":reactions_l,
+            "drop_off":drop_off,
         }
 
         for token in tokens:
